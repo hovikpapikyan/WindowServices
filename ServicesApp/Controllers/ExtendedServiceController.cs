@@ -40,17 +40,16 @@ public class ExtendedServiceController : ServiceController
                         OnStatusChanged(new ServiceStatusEventArgs(status));
                         StartListening();
                     }
-                    catch
+                    catch(Exception ex)
                     {
-                        // You can either raise another event here with the exception or ignore it since it most likely means the service was
-                        // uninstalled/lost communication
+                       
                     }
                 });
             }
         }
     }
 
-    protected virtual void OnStatusChanged(ServiceStatusEventArgs e)
+    protected void OnStatusChanged(ServiceStatusEventArgs e)
     {
         StatusChanged?.Invoke(this, e);
     }
