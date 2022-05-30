@@ -3,7 +3,7 @@ using System.ServiceProcess;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-public class ExtendedServiceController : ServiceController
+public class ServiceChangeTracker : ServiceController
 {
     public event EventHandler<ServiceStatusEventArgs> StatusChanged;
     private Dictionary<ServiceControllerStatus, Task> _tasks = new Dictionary<ServiceControllerStatus, Task>();
@@ -17,16 +17,13 @@ public class ExtendedServiceController : ServiceController
         }
     }
 
-    public ExtendedServiceController(string ServiceName) : base(ServiceName)
+    public ServiceChangeTracker(string ServiceName) : base(ServiceName)
     {
         foreach (ServiceControllerStatus status in Enum.GetValues(typeof(ServiceControllerStatus)))
-        {
             _tasks.Add(status, null);
-        }
-        StartListening();
     }
 
-    private void StartListening()
+    public void StartListening()
     {
         foreach (ServiceControllerStatus status in Enum.GetValues(typeof(ServiceControllerStatus)))
         {

@@ -7,6 +7,8 @@ using System.Management;
 using ServicesApp.Models;
 using System.Windows.Input;
 using System.ServiceProcess;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using TimeoutException = System.ServiceProcess.TimeoutException;
 
@@ -18,7 +20,7 @@ public class ServiceViewModel : BindableBase
     {
         LoadServices();
 
-        StartOrStopCommand = new DelegateCommand(StartOrStop);
+        StartOrStopCommand = new DelegateCommand(() => StartOrStop());
     }
 
     #region Commands
@@ -49,69 +51,32 @@ public class ServiceViewModel : BindableBase
 
 
     #endregion
-
-    #region Command Methods
-
-    public void StartOrStop()
-    {
-        var controller = ServiceExtension.GetServices().FirstOrDefault(n => n.ServiceName == SelectedRow.ServiceName);
-        try
-        {
-            if (controller == null)
-                return;
-
-            if (controller.Status == ServiceControllerStatus.Stopped)
-            {
-                controller.Start();
-                controller.WaitForStatus(ServiceControllerStatus.Running);
-
-                SelectedRow.Status = ServiceControllerStatus.Running;
-                return;
-            }
-
-            if (controller.Status == ServiceControllerStatus.Running)
-            {
-                controller.Stop();
-                controller.WaitForStatus(ServiceControllerStatus.Stopped);
-
-                SelectedRow.Status = ServiceControllerStatus.Stopped;
-                return;
-            }
-        }
-        catch (InvalidOperationException ex)
-        {
-            MessageBox.Show($"The service failed when trying to {controller.Status} \n\n{ex.Message}");
-        }
-        catch (TimeoutException ex)
-        {
-            MessageBox.Show(ex.Message);
-        }
-    }
-    #endregion
-
+    
     #region Methods
-    public void LoadServices()
-    {
-        var output = new ObservableCollection<ServiceModel>();
 
-        var serviceContrlollers = ServiceExtension.GetServices();
-        foreach (var controller in serviceContrlollers)
+    public async Task LoadServices()
+    {
+        IsBusy = true;
+        Services = await Task.Run(() => new ObservableCollection<ServiceModel>(GetServices()));
+        IsBusy = false;
+    }
+
+    private IEnumerable<ServiceModel> GetServices()
+    {
+        foreach (var controller in ServiceExtension.GetServices())
         {
-            var service = new ServiceModel
+            var changeTracker = new ServiceChangeTracker(controller.ServiceName);
+            changeTracker.StatusChanged += ServiceController_StatusChanged;
+            changeTracker.StartListening();
+
+            yield return new ServiceModel
             {
                 Status = controller.Status,
                 ServiceName = controller.ServiceName,
                 DisplayName = controller.DisplayName,
                 Account = new ManagementObject("Win32_Service.Name='" + controller.ServiceName + "'")["StartName"]?.ToString(),
             };
-
-            ExtendedServiceController serviceController = new(service.ServiceName);
-            serviceController.StatusChanged += ServiceController_StatusChanged;
-
-            output.Add(service);
         }
-
-        Services = output;
     }
 
     private void ServiceController_StatusChanged(object sender, ServiceStatusEventArgs e)
@@ -125,4 +90,48 @@ public class ServiceViewModel : BindableBase
     }
 
     #endregion
+
+    #region Command Methods
+    public async Task StartOrStop()
+    {
+        SelectedRow.Status = await Task.Run(() => GetStatus());
+    }
+
+    public ServiceControllerStatus GetStatus()
+    {
+        var controller = ServiceExtension.GetServices().FirstOrDefault(n => n.ServiceName == SelectedRow.ServiceName);
+        try
+        {
+            if (controller is not null)
+            {
+                if (controller.Status == ServiceControllerStatus.Stopped)
+                {
+                    controller.Start();
+                    controller.WaitForStatus(ServiceControllerStatus.Running);
+
+                    return controller.Status;
+                }
+
+                if (controller.Status == ServiceControllerStatus.Running)
+                {
+                    controller.Stop();
+                    controller.WaitForStatus(ServiceControllerStatus.Stopped);
+
+                    return controller.Status;
+                }
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            MessageBox.Show($"The service failed when trying to {controller.Status} \n\n{ex.Message}");
+        }
+        catch (TimeoutException ex)
+        {
+            MessageBox.Show(ex.Message);
+        }
+
+        return controller.Status; 
+    }
+    #endregion
+
 }
