@@ -1,11 +1,9 @@
 ﻿using System;
 using System.ServiceProcess;
 
-public class ServiceStatusEventArgs : EventArgs
+public class ServiceControllerEventArgs : EventArgs
 {
-    public ServiceControllerStatus Status { get; private set; }
-    public ServiceStatusEventArgs(ServiceControllerStatus Status)
-    {
-        this.Status = Status;
-    }
+    public ServiceController ServiceController { get; private set; }
+    
+    public ServiceControllerEventArgs(ServiceController service) => ServiceController = service;
 }

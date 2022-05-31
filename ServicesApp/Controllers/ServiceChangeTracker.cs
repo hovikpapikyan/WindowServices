@@ -1,11 +1,13 @@
 ﻿using System;
 using System.ServiceProcess;
 using System.Threading.Tasks;
+using WindowServices.Extensions;
 using System.Collections.Generic;
+using System.Windows;
 
 public class ServiceChangeTracker : ServiceController
 {
-    public event EventHandler<ServiceStatusEventArgs> StatusChanged;
+    public event EventHandler<ServiceControllerEventArgs> ServiceChanged;
     private Dictionary<ServiceControllerStatus, Task> _tasks = new Dictionary<ServiceControllerStatus, Task>();
 
     new public ServiceControllerStatus Status
@@ -29,25 +31,30 @@ public class ServiceChangeTracker : ServiceController
         {
             if (Status != status && (_tasks[status] == null || _tasks[status].IsCompleted))
             {
-                _tasks[status] = Task.Run(() =>
+                _tasks[status] = Task.Run(async () =>
                 {
                     try
                     {
-                        base.WaitForStatus(status);
-                        OnStatusChanged(new ServiceStatusEventArgs(status));
-                        StartListening();
+                        await this.WaitForStatusAsync(status, TimeSpan.FromMinutes(5));
+
+                        OnServiceChanged(new ServiceControllerEventArgs(this));
+
                     }
                     catch(Exception ex)
                     {
-                       
+                        System.Diagnostics.Debug.WriteLine(ex.Message);// for Log...
+                    }
+                    finally
+                    {
+                        StartListening();
                     }
                 });
             }
         }
     }
 
-    protected void OnStatusChanged(ServiceStatusEventArgs e)
+    protected void OnServiceChanged(ServiceControllerEventArgs e)
     {
-        StatusChanged?.Invoke(this, e);
+        ServiceChanged?.Invoke(this, e);
     }
 }

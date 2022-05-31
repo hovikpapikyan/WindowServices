@@ -52,8 +52,9 @@
             </Button.Style>
         </Button>
 
-        <DataGrid Grid.Column="1" ItemsSource="{Binding Services, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding SelectedRow}" SelectedIndex="0" 
-                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" >
+        <DataGrid Grid.Column="1" ItemsSource="{Binding Services, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" CanUserAddRows="False"
+                  SelectedItem="{Binding SelectedRow, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedIndex="0" AutoGenerateColumns="False"
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" IsReadOnly="True">
             <DataGrid.Style>
                 <Style TargetType="{x:Type DataGrid}">
                     <Style.Triggers>
@@ -66,6 +67,13 @@
                     </Style.Triggers>
                 </Style>
             </DataGrid.Style>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ServiceName" Binding="{Binding ServiceName}" Width="*"/>
+                <DataGridTextColumn Header="DisplayName" Binding="{Binding DisplayName}" Width="2*"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="0.5*"/>
+                <DataGridTextColumn Header="Account" Binding="{Binding Account}" Width="1.5*"/>
+            </DataGrid.Columns>
         </DataGrid>
     </Grid>
 </Window>

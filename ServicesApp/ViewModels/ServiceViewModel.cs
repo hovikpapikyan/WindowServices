@@ -66,7 +66,7 @@ public class ServiceViewModel : BindableBase
         foreach (var controller in ServiceExtension.GetServices())
         {
             var changeTracker = new ServiceChangeTracker(controller.ServiceName);
-            changeTracker.StatusChanged += ServiceController_StatusChanged;
+            changeTracker.ServiceChanged += ServiceController_StatusChanged;
             changeTracker.StartListening();
 
             yield return new ServiceModel
@@ -79,14 +79,14 @@ public class ServiceViewModel : BindableBase
         }
     }
 
-    private void ServiceController_StatusChanged(object sender, ServiceStatusEventArgs e)
+    private void ServiceController_StatusChanged(object sender, ServiceControllerEventArgs e)
     {
         if (sender is not ServiceController service)
             return;
      
         var controller = Services.FirstOrDefault(s => s.ServiceName == service.ServiceName);
         if (controller is not null)
-            Application.Current.Dispatcher.Invoke(() => controller.Status = e.Status);
+            Application.Current.Dispatcher.Invoke(() => controller.Status = e.ServiceController.Status);
     }
 
     #endregion
